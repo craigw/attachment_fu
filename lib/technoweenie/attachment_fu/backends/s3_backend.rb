@@ -376,12 +376,19 @@ module Technoweenie # :nodoc:
 
           def save_to_storage
             if save_attachment?
+              options = {
+                :content_type => content_type,
+                :access => attachment_options[:s3_access]
+              }
+              if attachment_options[:expires_in]
+                options.merge!(:expires => attachment_options[:expires_in].from_now.to_i)
+                options.merge!(:cache_control => "max-age=" + attachment_options[:expires_in].to_i.to_s)
+              end
+
               S3Object.store(
                 full_filename,
                 (temp_path ? File.open(temp_path) : temp_data),
-                bucket_name,
-                :content_type => content_type,
-                :access => attachment_options[:s3_access]
+                bucket_name, options
               )
             end
 

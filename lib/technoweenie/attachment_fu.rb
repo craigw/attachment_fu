@@ -214,6 +214,21 @@ module Technoweenie # :nodoc:
           write_inheritable_array(:after_attachment_saved, [block])
         end
 
+        # Callback before an attachment has been saved either to the file system or the DB.
+        # Only called if the file has been changed, not necessarily if the record is updated.
+        #
+        # Handy for testing the AWS-S3 backend when using FakeWeb.
+        #
+        #   class Foo < ActiveRecord::Base
+        #     acts_as_attachment
+        #     before_attachment_saved do |record|
+        #       ...
+        #     end
+        #   end
+        def before_attachment_saved(&block)
+          write_inheritable_array(:before_attachment_saved, [block])
+        end
+
         # Callback before a thumbnail is saved.  Use this to pass any necessary extra attributes that may be required.
         #
         #   class Foo < ActiveRecord::Base
@@ -255,7 +270,7 @@ module Technoweenie # :nodoc:
 
     module InstanceMethods
       def self.included(base)
-        base.define_callbacks *[:after_resize, :after_attachment_saved, :before_thumbnail_saved] if base.respond_to?(:define_callbacks)
+        base.define_callbacks *[:after_resize, :before_attachment_saved, :after_attachment_saved, :before_thumbnail_saved] if base.respond_to?(:define_callbacks)
       end
 
       # Checks whether the attachment's content type is an image content type
@@ -455,6 +470,7 @@ module Technoweenie # :nodoc:
               temp_file = temp_path || create_temp_file
               attachment_options[:thumbnails].each { |suffix, size| create_or_update_thumbnail(temp_file, suffix, *size) }
             end
+            callback :before_attachment_saved
             save_to_storage
             @temp_paths.clear
             @saved_attachment = nil
